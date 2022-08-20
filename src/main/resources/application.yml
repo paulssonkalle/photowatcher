@@ -1,0 +1,10 @@
+paths:
+  root: /home/kalle/test
+
+redis:
+  changed: CHANGED
+
+spring:
+  redis:
+    host: localhost
+    port: 6379
