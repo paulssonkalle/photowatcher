@@ -1,5 +1,6 @@
 paths:
-  root: /home/kalle/test
+  photos: /home/kalle/test
+  backup: /home/kalle/test/photo_backup
 
 redis:
   changed: CHANGED

@@ -14,6 +14,7 @@
     <description>Demo project for Spring Boot</description>
     <properties>
         <java.version>17</java.version>
+        <spotless.version>2.27.2</spotless.version>
     </properties>
     <dependencies>
         <dependency>
@@ -57,6 +58,12 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>com.diffplug.spotless</groupId>
+            <artifactId>spotless-maven-plugin</artifactId>
+            <version>${spotless.version}</version>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -71,6 +78,42 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>${spotless.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>apply</goal>
+                        </goals>
+                        <phase>compile</phase>
+                    </execution>
+                </executions>
+                <configuration>
+                    <java>
+                        <includes>
+                            <include>src/main/java/**/*.java</include>
+                            <include>src/test/java/**/*.java</include>
+                        </includes>
+
+                        <importOrder /> <!-- standard import order -->
+
+                        <removeUnusedImports /> <!-- self-explanatory -->
+
+                        <googleJavaFormat>
+                            <version>1.8</version>                      <!-- optional -->
+                            <style>GOOGLE</style>                       <!-- or AOSP (optional) -->
+                            <reflowLongStrings>true</reflowLongStrings> <!-- optional (requires at least 1.8) -->
+                            <!-- optional: custom group artifact (you probably don't need this) -->
+                            <groupArtifact>com.google.googlejavaformat:google-java-format</groupArtifact>
+                        </googleJavaFormat>
+
+                        <formatAnnotations />  <!-- fixes formatting of type annotations, see below -->
+                    </java>
                 </configuration>
             </plugin>
         </plugins>
