@@ -1,11 +1,25 @@
-paths:
-  photos: /home/kalle/test
-  backup: /home/kalle/test/photo_backup
-
-redis:
-  changed: CHANGED
+app:
+  dryrun: true
+  paths:
+    photos: /home/kalle/test
+    backup: /home/kalle/photo_backup
+  aws:
+    bucket: bucketName
+  redis:
+    keys:
+      zip: ZIP
+      upload: UPLOAD
+  schedules:
+    zip: '@hourly'
+    upload: '@midnight'
 
 spring:
   redis:
     host: localhost
     port: 6379
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,env

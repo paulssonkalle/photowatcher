@@ -23,7 +23,7 @@ public class PhotowatcherApplication implements ApplicationRunner {
 
   private final RecursiveWatchService recursiveWatchService;
 
-  @Value("${paths.photos}") private Path photos;
+  @Value("${app.paths.photos}") private Path photos;
 
   public static void main(String[] args) {
     SpringApplication.run(PhotowatcherApplication.class, args);

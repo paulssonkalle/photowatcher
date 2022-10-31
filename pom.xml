@@ -15,6 +15,7 @@
     <properties>
         <java.version>17</java.version>
         <spotless.version>2.27.2</spotless.version>
+        <aws.sdk.version>2.16.1</aws.sdk.version>
     </properties>
     <dependencies>
         <dependency>
@@ -30,13 +31,6 @@
             <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
 
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-devtools</artifactId>
-            <scope>runtime</scope>
-            <optional>true</optional>
-        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-configuration-processor</artifactId>
@@ -59,12 +53,29 @@
         </dependency>
 
         <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>com.diffplug.spotless</groupId>
             <artifactId>spotless-maven-plugin</artifactId>
             <version>${spotless.version}</version>
         </dependency>
 
     </dependencies>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>bom</artifactId>
+                <version>${aws.sdk.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
         <plugins>
@@ -99,19 +110,9 @@
                             <include>src/main/java/**/*.java</include>
                             <include>src/test/java/**/*.java</include>
                         </includes>
-
                         <importOrder /> <!-- standard import order -->
-
                         <removeUnusedImports /> <!-- self-explanatory -->
-
-                        <googleJavaFormat>
-                            <version>1.8</version>                      <!-- optional -->
-                            <style>GOOGLE</style>                       <!-- or AOSP (optional) -->
-                            <reflowLongStrings>true</reflowLongStrings> <!-- optional (requires at least 1.8) -->
-                            <!-- optional: custom group artifact (you probably don't need this) -->
-                            <groupArtifact>com.google.googlejavaformat:google-java-format</groupArtifact>
-                        </googleJavaFormat>
-
+                        <googleJavaFormat />
                         <formatAnnotations />  <!-- fixes formatting of type annotations, see below -->
                     </java>
                 </configuration>
