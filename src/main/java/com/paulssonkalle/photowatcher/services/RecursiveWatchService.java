@@ -33,7 +33,7 @@ public class RecursiveWatchService {
         Path parentPath = keyPathMap.get(queuedKey);
         path = parentPath.resolve(path);
 
-        redisService.addChange(path);
+        redisService.addPath(path);
 
         if (watchEvent.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
           registerDirectory(path, watchService);

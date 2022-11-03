@@ -7,8 +7,8 @@ app:
     bucket: bucketName
   redis:
     keys:
-      zip: ZIP
-      upload: UPLOAD
+      upload-key: UPLOAD
+      zip-key: ZIP
   schedules:
     zip: '@hourly'
     upload: '@midnight'

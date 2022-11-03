@@ -1,13 +1,11 @@
 package com.paulssonkalle.photowatcher.tasks;
 
-import com.paulssonkalle.photowatcher.domain.YearMonth;
-import com.paulssonkalle.photowatcher.services.PhotoPathService;
+import com.paulssonkalle.photowatcher.services.RedisService;
 import com.paulssonkalle.photowatcher.services.S3Service;
 import com.paulssonkalle.photowatcher.services.ZipService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -15,48 +13,59 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @RequiredArgsConstructor
 public class ScheduledTasks {
-  @Value("${app.redis.keys.zip}") private String zipKey;
-
-  @Value("${app.redis.keys.upload}") private String uploadKey;
-
   @Value("${app.dryrun}") private boolean dryRun;
 
-  private final ReactiveRedisTemplate<String, String> redis;
+  private final RedisService redisService;
   private final ZipService zipService;
   private final S3Service s3Service;
-  private final PhotoPathService photoPathService;
 
   @Scheduled(cron = "${app.schedules.zip}")
   public void checkZip() {
-    redis.opsForSet().members(zipKey).subscribe(this::zip);
+    redisService.getZipMembers().forEach(this::zip);
   }
 
   @Scheduled(cron = "${app.schedules.upload}")
   public void checkUpload() {
-    redis.opsForSet().members(uploadKey).subscribe(this::upload);
+    redisService.getUploadMembers().forEach(this::upload);
   }
 
   private void zip(String path) {
-    final YearMonth yearMonth = photoPathService.getYearMonth(path);
     if (dryRun) {
-      log.info("Zipping disabled. Not zipping {}", yearMonth);
+      log.info("Zipping disabled. Not zipping {}", path);
+      redisService.removeZipMember(path);
     } else {
-      zipService.zipPhotoFolder(yearMonth.year(), yearMonth.month());
+      redisService.removeZipMember(path);
+      zipService
+          .zipFolder(path)
+          .whenComplete(
+              (result, ex) -> {
+                if (ex != null) {
+                  log.error("Failed to zip {}", path, ex);
+                  redisService.addZipMember(path);
+                }
+              });
     }
-    log.info("Marking {} as zipped", path);
-    redis.opsForSet().remove(zipKey, path).subscribe();
-    redis.opsForSet().add(uploadKey, path).subscribe();
   }
 
   private void upload(String path) {
-    final YearMonth yearMonth = photoPathService.getYearMonth(path);
     if (dryRun) {
-      log.info("Uploading disabled. Not uploading {}", yearMonth);
+      log.info("Uploading disabled. Not uploading {}", path);
+      redisService.removeUploadMember(path);
     } else {
       log.info("Uploading {}", path);
-      s3Service.uploadPhotos(yearMonth.year(), yearMonth.month());
+      redisService.removeUploadMember(path);
+      s3Service
+          .upload(path)
+          .whenComplete(
+              (response, exception) -> {
+                if (response != null && response.sdkHttpResponse().isSuccessful()) {
+                  log.info("Uploaded {} successfully", path);
+                  redisService.removeUploadMember(path);
+                } else {
+                  log.error("Failed to upload {}", path, exception);
+                  redisService.addUploadMember(path);
+                }
+              });
     }
-    log.info("Marking {} as uploaded", path);
-    redis.opsForSet().remove(uploadKey, path).subscribe();
   }
 }

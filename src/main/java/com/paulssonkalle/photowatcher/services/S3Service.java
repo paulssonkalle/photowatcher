@@ -1,6 +1,8 @@
 package com.paulssonkalle.photowatcher.services;
 
+import com.paulssonkalle.photowatcher.domain.YearMonth;
 import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,26 +23,17 @@ public class S3Service {
 
   @Value("${app.paths.backup}") private Path backupPath;
 
-  public void uploadPhotos(String year, String month) {
-    final Path fileToUpload = backupPath.resolve(year + "_" + month + ".zip");
+  private final PhotoPathService photoPathService;
+
+  public CompletableFuture<PutObjectResponse> upload(String path) {
+    final YearMonth yearMonth = photoPathService.getYearMonth(path);
+    final Path fileToUpload =
+        backupPath.resolve(yearMonth.year() + "_" + yearMonth.month() + ".zip");
     final String filename = fileToUpload.getFileName().toString();
 
     log.info("Starting upload of {}", filename);
-    s3Client
-        .putObject(
-            builder ->
-                builder.bucket(bucketName).key(filename).storageClass(StorageClass.DEEP_ARCHIVE),
-            AsyncRequestBody.fromFile(fileToUpload))
-        .whenComplete(
-            (response, exception) -> handleCompletedUpload(response, exception, fileToUpload))
-        .join();
-  }
-
-  private void handleCompletedUpload(PutObjectResponse response, Throwable exception, Path file) {
-    if (response != null && response.sdkHttpResponse().isSuccessful()) {
-      log.info("Uploaded {} successfully", file.getFileName());
-    } else {
-      log.error("Failed to upload {}", file.getFileName(), exception);
-    }
+    return s3Client.putObject(
+        builder -> builder.bucket(bucketName).key(filename).storageClass(StorageClass.DEEP_ARCHIVE),
+        AsyncRequestBody.fromFile(fileToUpload));
   }
 }
