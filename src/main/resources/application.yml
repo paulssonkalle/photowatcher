@@ -1,5 +1,4 @@
 app:
-  dryrun: true
   paths:
     photos: /home/kalle/test
     backup: /home/kalle/photo_backup

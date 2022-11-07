@@ -13,6 +13,7 @@ import java.nio.file.WatchService;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.regex.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,8 +22,10 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @AllArgsConstructor
 public class RecursiveWatchService {
+  private static final Pattern yearMonthPattern = Pattern.compile("\\d{4}/(0[1-9]|1[0-2])");
   private final Map<WatchKey, Path> keyPathMap = new HashMap<>();
   private final RedisService redisService;
+  private final PhotoPathService photoPathService;
 
   public void startListening(WatchService watchService)
       throws InterruptedException, IOException, ClosedWatchServiceException {
@@ -32,8 +35,14 @@ public class RecursiveWatchService {
         Path path = (Path) watchEvent.context();
         Path parentPath = keyPathMap.get(queuedKey);
         path = parentPath.resolve(path);
+        Path yearMonthPath = photoPathService.getYearMonthPath(path);
 
-        redisService.addPath(path);
+        if (!yearMonthPattern.matcher(yearMonthPath.toString()).find()) {
+          log.error(
+              "{} did not match year and month pattern, not adding as changed", yearMonthPath);
+        } else if (redisService.addPath(yearMonthPath)) {
+          log.info("Adding {} as changed", yearMonthPath);
+        }
 
         if (watchEvent.kind() == StandardWatchEventKinds.ENTRY_CREATE) {
           registerDirectory(path, watchService);
