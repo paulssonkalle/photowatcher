@@ -1,24 +1,27 @@
 app:
   paths:
-    photos: /home/kalle/test
-    backup: /home/kalle/photo_backup
+    photos:
+    backup:
+    download:
   aws:
-    bucket: bucketName
+    s3:
+      bucket-name:
+      restore-duration-in-days:
+    sqs:
+      queue-name:
   redis:
     keys:
-      upload-key: UPLOAD
-      zip-key: ZIP
-  schedules:
-    zip: '@hourly'
-    upload: '@midnight'
+      upload: upload
+      zip: zip
+      download: download
+  scheduling:
+    cron:
+      zip: '@hourly'
+      upload: '@daily'
+      download: '@hourly'
 
 spring:
-  redis:
-    host: localhost
-    port: 6379
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,env
+  data:
+    redis:
+      host: localhost
+      port: 6379

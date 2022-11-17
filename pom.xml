@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.7.1</version>
+        <version>3.0.0-RC1</version>
         <relativePath /> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.paulssonkalle</groupId>
@@ -15,7 +15,9 @@
     <properties>
         <java.version>19</java.version>
         <spotless.version>2.27.2</spotless.version>
-        <aws.sdk.version>2.16.1</aws.sdk.version>
+        <io.awspring.cloud.version>3.0.0-M3</io.awspring.cloud.version>
+        <aws.lambda.java.events.version>3.11.0</aws.lambda.java.events.version>
+        <jib.version>3.3.1</jib.version>
     </properties>
     <dependencies>
         <dependency>
@@ -24,11 +26,11 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
 
         <dependency>
@@ -42,14 +44,39 @@
             <optional>true</optional>
         </dependency>
         <dependency>
+            <groupId>io.projectreactor</groupId>
+            <artifactId>reactor-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
 
         <dependency>
-            <groupId>software.amazon.awssdk</groupId>
-            <artifactId>s3</artifactId>
+            <groupId>io.awspring.cloud</groupId>
+            <artifactId>spring-cloud-aws-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.awspring.cloud</groupId>
+            <artifactId>spring-cloud-aws-starter-s3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.awspring.cloud</groupId>
+            <artifactId>spring-cloud-aws-starter-sqs</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-lambda-java-events</artifactId>
+            <version>${aws.lambda.java.events.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-lambda-java-serialization</artifactId>
+            <version>1.0.0</version>
         </dependency>
 
         <dependency>
@@ -63,14 +90,37 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>software.amazon.awssdk</groupId>
-                <artifactId>bom</artifactId>
-                <version>${aws.sdk.version}</version>
+                <groupId>io.awspring.cloud</groupId>
+                <artifactId>spring-cloud-aws-dependencies</artifactId>
+                <version>${io.awspring.cloud.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+<!--TODO Remove once Spring Boot 3.0 is released-->
+    <repositories>
+        <repository>
+            <id>spring-snapshots</id>
+            <url>https://repo.spring.io/snapshot</url>
+            <snapshots><enabled>true</enabled></snapshots>
+        </repository>
+        <repository>
+            <id>spring-milestones</id>
+            <url>https://repo.spring.io/milestone</url>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>spring-snapshots</id>
+            <url>https://repo.spring.io/snapshot</url>
+        </pluginRepository>
+        <pluginRepository>
+            <id>spring-milestones</id>
+            <url>https://repo.spring.io/milestone</url>
+        </pluginRepository>
+    </pluginRepositories>
 
     <build>
         <plugins>
@@ -111,6 +161,29 @@
                         <formatAnnotations />  <!-- fixes formatting of type annotations, see below -->
                     </java>
                 </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>com.google.cloud.tools</groupId>
+                <artifactId>jib-maven-plugin</artifactId>
+                <version>${jib.version}</version>
+                <configuration>
+                    <to>
+                        <image>docker.io/paulssonkalle/photowatcher</image>
+                    </to>
+                    <from>
+                        <image>eclipse-temurin:19-jre</image>
+                    </from>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>dockerBuild</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>dockerBuild</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

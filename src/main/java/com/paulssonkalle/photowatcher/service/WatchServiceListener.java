@@ -1,19 +1,11 @@
-package com.paulssonkalle.photowatcher.services;
+package com.paulssonkalle.photowatcher.service;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.ClosedWatchServiceException;
-import java.nio.file.Files;
-import java.nio.file.LinkOption;
-import java.nio.file.Path;
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchEvent;
-import java.nio.file.WatchKey;
-import java.nio.file.WatchService;
+import java.nio.file.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.regex.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,11 +13,10 @@ import org.springframework.stereotype.Service;
 @Service
 @Slf4j
 @AllArgsConstructor
-public class RecursiveWatchService {
-  private static final Pattern yearMonthPattern = Pattern.compile("\\d{4}/(0[1-9]|1[0-2])");
+public class WatchServiceListener {
   private final Map<WatchKey, Path> keyPathMap = new HashMap<>();
   private final RedisService redisService;
-  private final PhotoPathService photoPathService;
+  private final PathService pathService;
 
   public void startListening(WatchService watchService)
       throws InterruptedException, IOException, ClosedWatchServiceException {
@@ -35,13 +26,14 @@ public class RecursiveWatchService {
         Path path = (Path) watchEvent.context();
         Path parentPath = keyPathMap.get(queuedKey);
         path = parentPath.resolve(path);
-        Path yearMonthPath = photoPathService.getYearMonthPath(path);
+        Path yearMonthPath = pathService.getYearMonthPath(path);
 
-        if (!yearMonthPattern.matcher(yearMonthPath.toString()).find()) {
+        if (pathService.matchesYearMonthPattern(yearMonthPath)) {
+          log.info("Adding {} as changed", yearMonthPath);
+          redisService.addPath(yearMonthPath).subscribe();
+        } else {
           log.error(
               "{} did not match year and month pattern, not adding as changed", yearMonthPath);
-        } else if (redisService.addPath(yearMonthPath)) {
-          log.info("Adding {} as changed", yearMonthPath);
         }
 
         if (watchEvent.kind() == StandardWatchEventKinds.ENTRY_CREATE) {

@@ -35,3 +35,6 @@ build/
 
 ### Project ###
 redis/data
+application-local.yml
+.env
+application-docker.yml

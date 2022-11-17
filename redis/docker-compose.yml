@@ -10,3 +10,9 @@ services:
       - "./redis.conf:/usr/local/etc/redis/redis.conf"
       - "./data:/data"
     command: "redis-server /usr/local/etc/redis/redis.conf"
+    networks:
+      - redis
+
+networks:
+  redis:
+    external: true
