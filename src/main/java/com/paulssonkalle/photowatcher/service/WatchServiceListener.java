@@ -29,7 +29,7 @@ public class WatchServiceListener {
         Path yearMonthPath = pathService.getYearMonthPath(path);
 
         if (pathService.matchesYearMonthPattern(yearMonthPath)) {
-          log.info("Adding {} as changed", yearMonthPath);
+          log.debug("Adding {} as changed", yearMonthPath);
           redisService.addPath(yearMonthPath).subscribe();
         } else {
           log.error(
