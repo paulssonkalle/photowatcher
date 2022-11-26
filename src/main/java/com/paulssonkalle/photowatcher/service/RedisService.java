@@ -18,7 +18,7 @@ public class RedisService {
   private final ReactiveSetOperations<String, String> setOperations;
 
   public Mono<Long> addPath(Path path) {
-    return addZipMember(String.valueOf(path)).filter(l -> l > 0);
+    return addZipMember(String.valueOf(path));
   }
 
   public Flux<String> getZipMembers() {
