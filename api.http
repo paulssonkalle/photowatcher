@@ -1,0 +1,35 @@
+### List Redis entries
+GET http://localhost:8080/api/redis
+
+<> 2024-09-14T082554.200.json
+
+### List all objects in S3 bucket
+GET http://localhost:8080/api/s3/list
+
+<> 2024-09-14T082603.200.json
+
+### Initiate a restore request for a file
+@filename = 2024_09.zip
+POST http://localhost:8080/api/s3/restore/{{filename}}
+Content-Type: application/x-www-form-urlencoded
+
+### Initiate a restore request for each file in the S3 bucket
+POST http://localhost:8080/api/s3/restore/all
+
+### Upload a zipped file to S3 bucket
+POST http://localhost:8080/api/upload
+Content-Type: application/json
+
+{
+  "year": "",
+  "month": ""
+}
+
+### Prepare a folder for upload by zipping it's content
+POST http://localhost:8080/api/zip
+Content-Type: application/json
+
+{
+  "year": "",
+  "month": ""
+}
