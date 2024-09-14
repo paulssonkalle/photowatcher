@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.*;
@@ -66,6 +67,7 @@ public class S3Service {
 
   public void restore(String filename) {
     log.info("Starting restore of {}", filename);
+
     RestoreObjectResponse restoreObjectResponse =
         s3Client
             .restoreObject(
@@ -78,12 +80,19 @@ public class S3Service {
                                 .days(awsProperties.s3().restoreDurationInDays())
                                 .build())
                         .build())
+            .handle(
+                (response, throwable) -> {
+                  if (throwable != null) {
+                    if (throwable.getCause() instanceof S3Exception e
+                        && e.statusCode() == HttpStatus.CONFLICT.value()) {
+                      log.info("Restore already in progress for {}", filename);
+                    } else {
+                      log.error("Failed to restore {}", filename, throwable);
+                    }
+                  }
+                  return response;
+                })
             .join();
-    if (restoreObjectResponse.sdkHttpResponse().isSuccessful()) {
-      log.info("Finished restore of {}", filename);
-    } else {
-      log.warn("Failed to restore of {}", filename);
-    }
   }
 
   public void restoreAll() {
