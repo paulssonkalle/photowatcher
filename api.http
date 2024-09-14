@@ -30,6 +30,6 @@ POST http://localhost:8080/api/zip
 Content-Type: application/json
 
 {
-  "year": "",
-  "month": ""
+  "year": "2024",
+  "month": "03"
 }
