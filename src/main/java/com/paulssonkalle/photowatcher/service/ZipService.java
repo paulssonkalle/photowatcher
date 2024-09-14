@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.zip.Deflater;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,7 @@ public class ZipService {
             Paths.get(yearMonth.year())
                 .resolve(yearMonth.month())
                 .resolve(sourceFile.getFileName());
+        zos.setLevel(Deflater.NO_COMPRESSION);
         zos.putNextEntry(new ZipEntry(zipPath.toString()));
         Files.copy(sourceFile, zos);
         zos.closeEntry();
