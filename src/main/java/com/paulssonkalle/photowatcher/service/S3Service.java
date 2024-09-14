@@ -74,7 +74,6 @@ public class S3Service {
                         .key(filename)
                         .restoreRequest(
                             RestoreRequest.builder()
-                                .tier(Tier.BULK)
                                 .days(awsProperties.s3().restoreDurationInDays())
                                 .build())
                         .build())
