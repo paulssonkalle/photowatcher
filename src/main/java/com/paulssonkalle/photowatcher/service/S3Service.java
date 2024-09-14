@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.*;
 import software.amazon.awssdk.transfer.s3.S3TransferManager;
+import software.amazon.awssdk.transfer.s3.model.CompletedFileDownload;
 import software.amazon.awssdk.transfer.s3.model.UploadFileRequest;
 
 @Service
@@ -97,19 +98,27 @@ public class S3Service {
   public GetObjectResponse download(String filename) {
     log.info("Starting download of {}", filename);
     Path downloadDestination = pathService.getDownloadDestination(filename);
-    GetObjectResponse getObjectResponse =
-        s3Client
-            .getObject(
-                builder -> builder.bucket(awsProperties.s3().bucketName()).key(filename),
-                downloadDestination)
+    CompletedFileDownload completedFileDownload =
+        s3TransferManager
+            .downloadFile(
+                builder ->
+                    builder
+                        .getObjectRequest(
+                            getObjectRequestBuilder ->
+                                getObjectRequestBuilder
+                                    .bucket(awsProperties.s3().bucketName())
+                                    .key(filename))
+                        .destination(downloadDestination)
+                        .build())
+            .completionFuture()
             .join();
 
-    if (getObjectResponse.sdkHttpResponse().isSuccessful()) {
+    if (completedFileDownload.response().sdkHttpResponse().isSuccessful()) {
       log.info("Finished download of {}", filename);
     } else {
       log.warn("Failed to download of {}", filename);
     }
 
-    return getObjectResponse;
+    return completedFileDownload.response();
   }
 }
