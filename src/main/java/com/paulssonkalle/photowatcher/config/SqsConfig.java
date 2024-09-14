@@ -6,13 +6,14 @@ import com.amazonaws.services.lambda.runtime.serialization.events.LambdaEventSer
 import io.awspring.cloud.sqs.config.SqsMessageListenerContainerFactory;
 import io.awspring.cloud.sqs.listener.acknowledgement.handler.AcknowledgementMode;
 import java.time.Duration;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.services.sqs.SqsAsyncClient;
 
 @Configuration
+@RequiredArgsConstructor
 public class SqsConfig {
-
   @Bean
   SqsMessageListenerContainerFactory<Object> restoreQueueFactory(SqsAsyncClient sqsAsyncClient) {
     return SqsMessageListenerContainerFactory.builder()

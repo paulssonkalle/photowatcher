@@ -6,14 +6,14 @@ import com.paulssonkalle.photowatcher.config.properties.AwsProperties;
 import com.paulssonkalle.photowatcher.domain.BucketFileDetail;
 import com.paulssonkalle.photowatcher.util.FileSize;
 import java.nio.file.Path;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-import software.amazon.awssdk.core.async.AsyncRequestBody;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.transfer.s3.S3TransferManager;
+import software.amazon.awssdk.transfer.s3.model.UploadFileRequest;
 
 @Service
 @Slf4j
@@ -21,28 +21,37 @@ import software.amazon.awssdk.services.s3.model.*;
 public class S3Service {
 
   private final S3AsyncClient s3Client;
+  private final S3TransferManager s3TransferManager;
   private final AwsProperties awsProperties;
   private final PathService pathService;
 
-  public Mono<PutObjectResponse> upload(String path) {
+  public PutObjectResponse upload(String path) {
     final Path fileToUpload = pathService.getFileUploadPath(path);
     final String filename = fileToUpload.getFileName().toString();
     log.info("Starting upload of {}", filename);
-    return Mono.fromFuture(
-        s3Client.putObject(
-            builder ->
-                builder
-                    .bucket(awsProperties.s3().bucketName())
-                    .key(filename)
-                    .storageClass(DEEP_ARCHIVE),
-            AsyncRequestBody.fromFile(fileToUpload)));
+    UploadFileRequest uploadFileRequest =
+        UploadFileRequest.builder()
+            .putObjectRequest(
+                builder ->
+                    builder
+                        .bucket(awsProperties.s3().bucketName())
+                        .key(filename)
+                        .storageClass(DEEP_ARCHIVE))
+            .source(fileToUpload)
+            .build();
+    PutObjectResponse response =
+        s3TransferManager.uploadFile(uploadFileRequest).completionFuture().join().response();
+    log.info("Finished uploading of {}", filename);
+    return response;
   }
 
-  public Flux<BucketFileDetail> listObjects() {
+  public List<BucketFileDetail> listObjects() {
     // 1000 objects per request should be plenty, but would be nice to handle pagination
-    return Mono.fromFuture(
-            s3Client.listObjectsV2(builder -> builder.bucket(awsProperties.s3().bucketName())))
-        .flatMapIterable(ListObjectsV2Response::contents)
+    return s3Client
+        .listObjectsV2(builder -> builder.bucket(awsProperties.s3().bucketName()))
+        .join()
+        .contents()
+        .stream()
         .map(
             o ->
                 BucketFileDetail.builder()
@@ -50,35 +59,58 @@ public class S3Service {
                     .lastModified(o.lastModified())
                     .size(FileSize.humanReadableByteCountBin(o.size()))
                     .storageClass(o.storageClassAsString())
-                    .build());
+                    .build())
+        .toList();
   }
 
-  public Mono<Void> restore(String filename) {
-    return Mono.fromFuture(
-            s3Client.restoreObject(
+  public void restore(String filename) {
+    log.info("Starting restore of {}", filename);
+    RestoreObjectResponse restoreObjectResponse =
+        s3Client
+            .restoreObject(
                 builder ->
                     builder
                         .bucket(awsProperties.s3().bucketName())
                         .key(filename)
                         .restoreRequest(
-                            restoreRequest ->
-                                restoreRequest.days(awsProperties.s3().restoreDurationInDays()))
-                        .build()))
-        .then();
+                            RestoreRequest.builder()
+                                .tier(Tier.BULK)
+                                .days(awsProperties.s3().restoreDurationInDays())
+                                .build())
+                        .build())
+            .join();
+    if (restoreObjectResponse.sdkHttpResponse().isSuccessful()) {
+      log.info("Finished restore of {}", filename);
+    } else {
+      log.warn("Failed to restore of {}", filename);
+    }
   }
 
-  public Mono<Void> restoreAll() {
-    return listObjects().flatMap(fileDetail -> restore(fileDetail.filename())).then();
+  public void restoreAll() {
+    log.info("Starting restore all");
+    List<BucketFileDetail> bucketFileDetails = listObjects();
+    for (BucketFileDetail bucketFileDetail : bucketFileDetails) {
+      restore(bucketFileDetail.filename());
+    }
+    log.info("Finished restore all");
   }
 
-  public Mono<GetObjectResponse> download(String filename) {
+  public GetObjectResponse download(String filename) {
     log.info("Starting download of {}", filename);
-    return Mono.just(pathService.getDownloadDestination(filename))
-        .flatMap(
-            downloadDestination ->
-                Mono.fromFuture(
-                    s3Client.getObject(
-                        builder -> builder.bucket(awsProperties.s3().bucketName()).key(filename),
-                        downloadDestination)));
+    Path downloadDestination = pathService.getDownloadDestination(filename);
+    GetObjectResponse getObjectResponse =
+        s3Client
+            .getObject(
+                builder -> builder.bucket(awsProperties.s3().bucketName()).key(filename),
+                downloadDestination)
+            .join();
+
+    if (getObjectResponse.sdkHttpResponse().isSuccessful()) {
+      log.info("Finished download of {}", filename);
+    } else {
+      log.warn("Failed to download of {}", filename);
+    }
+
+    return getObjectResponse;
   }
 }

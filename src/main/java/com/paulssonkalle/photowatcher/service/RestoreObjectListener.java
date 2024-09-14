@@ -21,13 +21,12 @@ public class RestoreObjectListener {
 
   @SqsListener(value = "${app.aws.sqs.queue-name}", factory = "restoreQueueFactory")
   public void queueListener(Message message) {
-    S3Event s3Event = s3EventSerializer.fromJson(message.body());
-
-    for (var notificationRecord : s3Event.getRecords()) {
+    S3Event event = s3EventSerializer.fromJson(message.body());
+    for (var notificationRecord : event.getRecords()) {
       String key = notificationRecord.getS3().getObject().getKey();
       String urlDecodedKey = URLDecoder.decode(key, StandardCharsets.UTF_8);
       if (notificationRecord.getEventName().equals(RESTORE_COMPLETE)) {
-        redis.addDownload(urlDecodedKey).subscribe();
+        redis.addDownload(urlDecodedKey);
       }
       log.info("Received {} event for {}", notificationRecord.getEventName(), urlDecodedKey);
     }

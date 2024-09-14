@@ -1,5 +1,5 @@
 package com.paulssonkalle.photowatcher.domain;
 
-import java.util.List;
+import java.util.Set;
 
-public record RedisSetDetail(List<String> zip, List<String> upload, List<String> download) {}
+public record RedisSetDetail(Set<String> zip, Set<String> upload, Set<String> download) {}
