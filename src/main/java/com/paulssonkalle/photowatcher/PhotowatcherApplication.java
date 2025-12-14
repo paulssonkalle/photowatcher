@@ -1,6 +1,6 @@
 package com.paulssonkalle.photowatcher;
 
-import com.paulssonkalle.photowatcher.config.properties.PathProperties;
+import com.paulssonkalle.photowatcher.service.PathService;
 import com.paulssonkalle.photowatcher.service.WatchServiceListener;
 import java.io.IOException;
 import java.nio.file.ClosedWatchServiceException;
@@ -13,6 +13,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+import org.springframework.lang.NonNull;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
@@ -22,16 +23,16 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @ConfigurationPropertiesScan("com.paulssonkalle.photowatcher.config.properties")
 public class PhotowatcherApplication implements ApplicationRunner {
   private final WatchServiceListener watchServiceListener;
-  private final PathProperties pathProperties;
+  private final PathService pathService;
 
-  public static void main(String[] args) {
+  static void main(String[] args) {
     SpringApplication.run(PhotowatcherApplication.class, args);
   }
 
   @Override
-  public void run(ApplicationArguments args) throws IOException, InterruptedException {
+  public void run(@NonNull ApplicationArguments args) throws IOException, InterruptedException {
     try (WatchService watchService = FileSystems.getDefault().newWatchService()) {
-      watchServiceListener.registerDirectory(pathProperties.photos(), watchService);
+      watchServiceListener.registerDirectory(pathService.getPhotosPath(), watchService);
       watchServiceListener.startListening(watchService);
     } catch (IOException | ClosedWatchServiceException | InterruptedException e) {
       log.error("Watchservice failed", e);
